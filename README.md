@@ -80,8 +80,23 @@ Add the following configuration under the `<Host>` section:
 Here is an example configuration to add under your `<Host>` section:
 
 ```xml
-<Host name="localhost"  appBase="webapps" unpackWARs="true" autoDeploy="true">
-    <Context path="" docBase="/var/www/html/python" />
+<Host name="amp012765.nomura.com" appBase="webapps" unpackWARs="true" autoDeploy="true">
+    <!-- SingleSignOn valve, share authentication between web applications -->
+    <!-- Documentation at: /docs/config/valve.html -->
+    <!--
+    <Valve className="org.apache.catalina.authenticator.SingleSignOn" />
+    -->
+    
+    <!-- Access log processes all example. -->
+    <!-- Documentation at: /docs/config/valve.html -->
+    <!-- Note: The pattern used is equivalent to using pattern="common" -->
+    <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+           prefix="localhost_access_log." suffix=".txt" pattern="common" />
+    
+    <!-- Context path for your Flask app -->
+    <Context path="" docBase="/var/www/html/your_flask_app" />
+    
+    <!-- Proxy settings to forward requests to Gunicorn running your Flask app -->
     <Proxy ajpHost="localhost" ajpPort="8009" protocol="AJP/1.3" />
     <ProxyPass / ajp://localhost:8009/>
     <ProxyPassReverse / ajp://localhost:8009/>
