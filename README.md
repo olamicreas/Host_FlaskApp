@@ -1,178 +1,111 @@
+# Hosting a Python Flask Application on RHEL with Apache Tomcat
 
-# Hosting a Flask Application Using Gunicorn on RHEL
-
-This guide provides detailed steps to host a Flask application using Gunicorn on RHEL (Red Hat Enterprise Linux) 8/9. 
+This guide will walk you through the steps to host a Python Flask application on a Red Hat Enterprise Linux (RHEL) server using Apache Tomcat. Although Tomcat is primarily used for Java applications, you can proxy requests to a Python application using Gunicorn.
 
 ## Prerequisites
 
-- A server running RHEL 8 or 9
-- Python 3.6 or higher installed
-- Root or sudo privileges
-- Basic knowledge of the terminal and command-line operations
+- A RHEL 7 or later server
+- Apache Tomcat installed
+- Python 3 installed
+- Basic knowledge of Linux command-line usage
 
-## Step 1: Install Required Packages
+## Step 1: Install Apache Tomcat
 
-First, you need to install Gunicorn, Nginx, and other dependencies.
+First, install Apache Tomcat on your RHEL server.
 
 ```bash
-sudo yum -y install python3 python3-pip nginx
+sudo yum install tomcat
 ```
 
-## Step 2: Set Up Your Flask Application
+Start and enable the Tomcat service:
 
-1. **Create a Project Directory**: 
+```bash
+sudo systemctl start tomcat
+sudo systemctl enable tomcat
+```
 
-   ```bash
-   mkdir ~/my_flask_app
-   cd ~/my_flask_app
-   ```
+## Step 2: Install Python and Flask
 
-2. **Set Up a Virtual Environment**:
+Make sure Python 3 is installed on your server. Then, set up a virtual environment and install Flask along with Gunicorn.
 
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
+```bash
+python3 -m venv myenv
+source myenv/bin/activate
+pip install flask gunicorn
+```
 
-3. **Install Flask and Gunicorn**:
+## Step 3: Create Your Flask Application
 
-   ```bash
-   pip install flask gunicorn
-   ```
+Create a simple Flask application (e.g., `app.py`).
 
-4. **Create Your Flask Application** (`app.py`):
+```python
+from flask import Flask
 
-   ```python
-   from flask import Flask, render_template
+app = Flask(__name__)
 
-   app = Flask(__name__)
+@app.route('/')
+def hello():
+    return "Hello, World!"
 
-   @app.route('/')
-   def index():
-       return render_template('index.html')
+if __name__ == "__main__":
+    app.run()
+```
 
-   if __name__ == "__main__":
-       app.run()
-   ```
+## Step 4: Run Flask with Gunicorn
 
-5. **Create an HTML Template**:
-
-   Create a `templates` folder and an `index.html` file:
-
-   ```bash
-   mkdir templates
-   ```
-
-   In `templates/index.html`:
-
-   ```html
-   <!DOCTYPE html>
-   <html lang="en">
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>Flask App</title>
-   </head>
-   <body>
-       <h1>Hello, This is a Flask-powered webpage!</h1>
-   </body>
-   </html>
-   ```
-
-## Step 3: Test Gunicorn Locally
-
-To make sure everything is working properly, you can test your Flask app locally using Gunicorn:
+Use Gunicorn to run your Flask application. This command binds the app to port 8000:
 
 ```bash
 gunicorn --bind 0.0.0.0:8000 app:app
 ```
 
-You should be able to visit `http://your_server_ip:8000` and see the "Hello, This is a Flask-powered webpage!" message.
+## Step 5: Configure Apache Tomcat to Proxy Requests
 
-## Step 4: Configure Nginx as a Reverse Proxy
+You need to configure Tomcat to proxy HTTP requests to the Flask application running on Gunicorn. Modify the `server.xml` file of your Tomcat installation, usually found in `/etc/tomcat/server.xml` or `/opt/tomcat/conf/server.xml`.
 
-1. **Create an Nginx Configuration File**:
+Add the following configuration under the `<Host>` section:
 
-   ```bash
-   sudo vi /etc/nginx/conf.d/my_flask_app.conf
-   ```
+```xml
+<Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+<Context path="" docBase="/path/to/your/app" />
+<Valve className="org.apache.catalina.authenticator.BasicAuthenticator" />
 
-   Add the following configuration:
+<Proxy ajpHost="localhost" ajpPort="8009" protocol="AJP/1.3" />
+<ProxyPass / ajp://localhost:8009/>
+<ProxyPassReverse / ajp://localhost:8009/>
+```
 
-   ```nginx
-   server {
-       listen 80;
-       server_name your_domain_or_IP;
+### Example Configuration
 
-       location / {
-           proxy_pass http://127.0.0.1:8000;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-           proxy_set_header X-Forwarded-Proto $scheme;
-       }
-   }
-   ```
+Here is an example configuration to add under your `<Host>` section:
 
-2. **Test Nginx Configuration**:
+```xml
+<Host name="localhost"  appBase="webapps" unpackWARs="true" autoDeploy="true">
+    <Context path="" docBase="/var/www/html/python" />
+    <Proxy ajpHost="localhost" ajpPort="8009" protocol="AJP/1.3" />
+    <ProxyPass / ajp://localhost:8009/>
+    <ProxyPassReverse / ajp://localhost:8009/>
+</Host>
+```
 
-   Check for syntax errors in the configuration:
+## Step 6: Restart Tomcat
 
-   ```bash
-   sudo nginx -t
-   ```
+After making changes to `server.xml`, restart the Tomcat service to apply the new configuration.
 
-   If everything is OK, restart Nginx:
+```bash
+sudo systemctl restart tomcat
+```
 
-   ```bash
-   sudo systemctl restart nginx
-   ```
+## Step 7: Access Your Flask Application
 
-## Step 5: Set Up Gunicorn as a Systemd Service
+Your Flask application should now be accessible through Tomcat. Open your web browser and navigate to:
 
-To ensure your Flask app starts with the system and is managed correctly, you can set up Gunicorn as a systemd service.
+```
+http://<your-server-ip>:8080/
+```
 
-1. **Create a Gunicorn Service File**:
+You should see the output from your Flask application, "Hello, World!"
 
-   ```bash
-   sudo vi /etc/systemd/system/gunicorn.service
-   ```
+## Conclusion
 
-   Add the following content:
-
-   ```ini
-   [Unit]
-   Description=Gunicorn instance to serve my_flask_app
-   After=network.target
-
-   [Service]
-   User=your_username
-   Group=nginx
-   WorkingDirectory=/home/your_username/my_flask_app
-   Environment="PATH=/home/your_username/my_flask_app/venv/bin"
-   ExecStart=/home/your_username/my_flask_app/venv/bin/gunicorn --workers 3 --bind unix:my_flask_app.sock -m 007 app:app
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
-
-   Replace `your_username` with your actual username.
-
-2. **Start and Enable the Gunicorn Service**:
-
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl start gunicorn
-   sudo systemctl enable gunicorn
-   ```
-
-   Check the status of the service:
-
-   ```bash
-   sudo systemctl status gunicorn
-   ```
-
-## Step 6: Finalize and Test
-
-Visit your server's IP address or domain name. Your Flask app should be live and running, served by Gunicorn and Nginx.
-
+This guide covered how to host a Python Flask application on a RHEL server using Apache Tomcat. While Tomcat is more commonly used with Java applications, it can proxy requests to a Python-based application using Gunicorn and the mod_proxy modules.
