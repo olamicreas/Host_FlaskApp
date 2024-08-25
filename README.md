@@ -130,6 +130,24 @@ http://<your-server-ip>:8080/
 
 You should see the output from your Flask application, "Hello, World!"
 
-## Conclusion
-
-This guide covered how to host a Python Flask application on a RHEL server using Apache Tomcat. While Tomcat is more commonly used with Java applications, it can proxy requests to a Python-based application using Gunicorn and the mod_proxy modules.
+## Reverse proxy
+```
+<Context path="/proxy">
+    <Servlet>
+        <ServletName>proxy</ServletName>
+        <ServletClass>org.apache.catalina.servlets.ProxyServlet</ServletClass>
+        <InitParam>
+            <ParamName>proxyTo</ParamName>
+            <ParamValue>http://localhost:8000/</ParamValue>
+        </InitParam>
+        <InitParam>
+            <ParamName>proxyRemote</ParamName>
+            <ParamValue>true</ParamValue>
+        </InitParam>
+    </Servlet>
+    <ServletMapping>
+        <ServletName>proxy</ServletName>
+        <UrlPattern>/</UrlPattern>
+    </ServletMapping>
+</Context>
+```
