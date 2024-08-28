@@ -1,153 +1,104 @@
-# Hosting a Python Flask Application on RHEL with Apache Tomcat
+Here's a detailed guide without the optional steps:
 
-This guide will walk you through the steps to host a Python Flask application on a Red Hat Enterprise Linux (RHEL) server using Apache Tomcat. Although Tomcat is primarily used for Java applications, you can proxy requests to a Python application using Gunicorn.
+### 1. **Setup on RHEL (`amp012765.nomura.com`):**
+   - **1.1 Install Dependencies:**
+     - SSH into your RHEL server:
+       ```bash
+       ssh user@amp012765.nomura.com
+       ```
+     - **Install Python 3 and pip:**
+       ```bash
+       sudo yum install python3 -y
+       sudo yum install python3-pip -y
+       ```
+     - **Create a Project Directory:**
+       ```bash
+       mkdir ~/flask_app && cd ~/flask_app
+       ```
+     - **Create `requirements.txt`:**
+       - Add Flask and Gunicorn as dependencies:
+         ```bash
+         echo "Flask" > requirements.txt
+         echo "Gunicorn" >> requirements.txt
+         ```
+     - **Upgrade pip and install the required dependencies:**
+       ```bash
+       pip3 install --upgrade pip
+       pip3 install -r requirements.txt
+       ```
 
-## Prerequisites
+### 2. **Develop the Flask Application:**
+   - **2.1 Create `app.py`:**
+     - In the `~/flask_app` directory, create the Flask application file:
+       ```bash
+       nano app.py
+       ```
+     - Add the following code:
+       ```python
+       from flask import Flask
+       app = Flask(__name__)
 
-- A RHEL 7 or later server
-- Apache Tomcat installed
-- Python 3 installed
-- Basic knowledge of Linux command-line usage
+       @app.route('/')
+       def hello_world():
+           return 'Hello, World!'
+       ```
+     - Save and exit (`CTRL + X`, then `Y`, then `Enter`).
 
-## Step 1: Install Apache Tomcat
+### 3. **Configure Gunicorn for Production:**
+   - **3.1 Create Gunicorn Configuration:**
+     - Create a `gunicorn_config.py` file:
+       ```bash
+       nano gunicorn_config.py
+       ```
+     - Add the following configuration:
+       ```python
+       import os
 
-First, install Apache Tomcat on your RHEL server.
+       workers = int(os.environ.get('GUNICORN_PROCESSES', '2'))
+       threads = int(os.environ.get('GUNICORN_THREADS', '4'))
+       bind = os.environ.get('GUNICORN_BIND', '0.0.0.0:8080')
+       forwarded_allow_ips = '*'
+       secure_scheme_headers = { 'X-Forwarded-Proto': 'https' }
+       ```
+     - Save and exit (`CTRL + X`, then `Y`, then `Enter`).
 
-```bash
-sudo yum install tomcat
-```
+### 4. **Run the Flask Application with Gunicorn:**
+   - **4.1 Start Gunicorn:**
+     - Run the Gunicorn server to serve the Flask application:
+       ```bash
+       gunicorn --config gunicorn_config.py app:app
+       ```
+     - The application will be running on `http://0.0.0.0:8080`, accessible from the server itself.
 
-Start and enable the Tomcat service:
+### 5. **Configure Firewall and SELinux (if applicable):**
+   - **5.1 Open Port 8080:**
+     - Open port 8080 to allow external access:
+       ```bash
+       sudo firewall-cmd --zone=public --add-port=8080/tcp --permanent
+       sudo firewall-cmd --reload
+       ```
+   - **5.2 Configure SELinux (if enforced):**
+     - Allow Flask to bind to port 8080:
+       ```bash
+       sudo semanage port -a -t http_port_t -p tcp 8080
+       ```
+     - If `semanage` is not installed:
+       ```bash
+       sudo yum install policycoreutils-python-utils
+       ```
 
-```bash
-sudo systemctl start tomcat
-sudo systemctl enable tomcat
-```
+### 6. **Make the Application Accessible via `amp012765.nomura.com`:**
+   - **6.1 Ensure the Server's Public IP is Mapped to `amp012765.nomura.com`:**
+     - Make sure the DNS is correctly set up to point `amp012765.nomura.com` to your server’s IP address.
 
-## Step 2: Install Python and Flask
+   - **6.2 Access the Application via Browser:**
+     - Open your browser and navigate to `http://amp012765.nomura.com:8080/`.
+     - You should see the output:
+       ```
+       Hello, World!
+       ```
 
-Make sure Python 3 is installed on your server. Then, set up a virtual environment and install Flask along with Gunicorn.
+### 7. **Conclusion:**
+   - Your Flask application is now up and running, accessible through the hostname `amp012765.nomura.com` on port `8080`.
 
-```bash
-python3 -m venv myenv
-source myenv/bin/activate
-pip install flask gunicorn
-```
-
-## Step 3: Create Your Flask Application
-
-Create a simple Flask application (e.g., `app.py`).
-
-```python
-from flask import Flask
-
-app = Flask(__name__)
-
-@app.route('/')
-def hello():
-    return "Hello, World!"
-
-if __name__ == "__main__":
-    app.run()
-```
-
-## Step 4: Run Flask with Gunicorn
-
-Use Gunicorn to run your Flask application. This command binds the app to port 8000:
-
-```bash
-gunicorn --bind 0.0.0.0:8000 app:app
-```
-
-## Step 5: Configure Apache Tomcat to Proxy Requests
-
-You need to configure Tomcat to proxy HTTP requests to the Flask application running on Gunicorn. Modify the `server.xml` file of your Tomcat installation, usually found in `/etc/tomcat/server.xml` or `/opt/tomcat/conf/server.xml`.
-
-Add the following configuration under the `<Host>` section:
-
-```xml
-<Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
-<Context path="" docBase="/path/to/your/app" />
-<Valve className="org.apache.catalina.authenticator.BasicAuthenticator" />
-
-<Proxy ajpHost="localhost" ajpPort="8009" protocol="AJP/1.3" />
-<ProxyPass / ajp://localhost:8009/>
-<ProxyPassReverse / ajp://localhost:8009/>
-```
-
-### Example Configuration
-
-Here is an example configuration to add under your `<Host>` section:
-
-```xml
-<Server port="8005" shutdown="SHUTDOWN">
-
-    <Service name="Catalina">
-        <Connector port="8080" protocol="HTTP/1.1"
-                   connectionTimeout="20000"
-                   redirectPort="8443" />
-
-        <!-- Define an AJP 1.3 Connector on port 8009 -->
-        <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
-
-        <!-- Define the Engine -->
-        <Engine name="Catalina" defaultHost="localhost">
-            <Host name="amp012765.nomura.com" appBase="webapps"
-                  unpackWARs="true" autoDeploy="true">
-
-                <!-- SingleSignOn valve, share authentication between web applications -->
-                <Valve className="org.apache.catalina.authenticator.SingleSignOn" />
-
-                <!-- Access log -->
-                <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
-                       prefix="localhost_access_log." suffix=".txt" pattern="common" />
-
-                <!-- Proxy settings to forward requests to Gunicorn -->
-                <Valve className="org.apache.catalina.valves.ProxyValve" 
-                       proxyPort="8000" protocol="HTTP/1.1" />
-
-            </Host>
-        </Engine>
-    </Service>
-</Server>
-```
-
-## Step 6: Restart Tomcat
-
-After making changes to `server.xml`, restart the Tomcat service to apply the new configuration.
-
-```bash
-sudo systemctl restart tomcat
-```
-
-## Step 7: Access Your Flask Application
-
-Your Flask application should now be accessible through Tomcat. Open your web browser and navigate to:
-
-```
-http://<your-server-ip>:8080/
-```
-
-You should see the output from your Flask application, "Hello, World!"
-
-## Reverse proxy
-```
-<Context path="/proxy">
-    <Servlet>
-        <ServletName>proxy</ServletName>
-        <ServletClass>org.apache.catalina.servlets.ProxyServlet</ServletClass>
-        <InitParam>
-            <ParamName>proxyTo</ParamName>
-            <ParamValue>http://localhost:8000/</ParamValue>
-        </InitParam>
-        <InitParam>
-            <ParamName>proxyRemote</ParamName>
-            <ParamValue>true</ParamValue>
-        </InitParam>
-    </Servlet>
-    <ServletMapping>
-        <ServletName>proxy</ServletName>
-        <UrlPattern>/</UrlPattern>
-    </ServletMapping>
-</Context>
-```
+Let me know if you need help with any specific steps!
