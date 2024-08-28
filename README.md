@@ -88,7 +88,7 @@ Here's a detailed guide without the optional steps:
        ```
 
 ### 6. **Make the Application Accessible via `example.com`:**
-   - **6.1 Ensure the Server's Public IP is Mapped to `amp012765.nomura.com`:**
+   - **6.1 Ensure the Server's Public IP is Mapped to `example.com`:**
      - Make sure the DNS is correctly set up to point `example.com` to your server’s IP address.
 
    - **6.2 Access the Application via Browser:**
@@ -99,6 +99,6 @@ Here's a detailed guide without the optional steps:
        ```
 
 ### 7. **Conclusion:**
-   - Your Flask application is now up and running, accessible through the hostname `amp012765.nomura.com` on port `8080`.
+   - Your Flask application is now up and running, accessible through the hostname `example.com` on port `8080`.
 
 Let me know if you need help with any specific steps!
