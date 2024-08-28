@@ -159,11 +159,7 @@ Let me know if you need help with any specific steps!
      sudo systemctl status gunicorn
      ```
 
-### Benefits of Using Systemd:
 
-- **Automatic Start on Boot:** The application will start automatically whenever the server is restarted.
-- **Automatic Restart:** If Gunicorn crashes for any reason, systemd can be configured to automatically restart it.
-- **Easy Management:** You can easily start, stop, restart, and check the status of your application with simple `systemctl` commands.
 
 ### Managing the Gunicorn Service:
 
