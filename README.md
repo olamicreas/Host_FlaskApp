@@ -4,7 +4,7 @@ Here's a detailed guide without the optional steps:
    - **1.1 Install Dependencies:**
      - SSH into your RHEL server:
        ```bash
-       ssh user@amp012765.nomura.com
+       ssh user@example.com
        ```
      - **Install Python 3 and pip:**
        ```bash
