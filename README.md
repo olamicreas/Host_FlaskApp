@@ -102,3 +102,86 @@ Here's a detailed guide without the optional steps:
    - Your Flask application is now up and running, accessible through the hostname `example.com` on port `8080`.
 
 Let me know if you need help with any specific steps!
+
+
+
+
+
+### Setting Up Gunicorn as a Systemd Service
+
+1. **Create a Systemd Service File:**
+
+   - Create a new service file for your application:
+     ```bash
+     sudo nano /etc/systemd/system/gunicorn.service
+     ```
+   - Add the following content to the file:
+
+     ```ini
+     [Unit]
+     Description=Gunicorn instance to serve Flask application
+     After=network.target
+
+     [Service]
+     User=root
+     Group=www-data
+     WorkingDirectory=/path/to/your/app
+     ExecStart=/path/to/your/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8080 --config /path/to/your/app/gunicorn_config.py app:app
+
+     [Install]
+     WantedBy=multi-user.target
+     ```
+   - Replace:
+     - `/path/to/your/app` with the directory where your Flask application resides.
+     - `/path/to/your/venv` with the path to your virtual environment.
+
+2. **Reload Systemd to Register the Service:**
+   - Run the following command to reload systemd and register the new service:
+     ```bash
+     sudo systemctl daemon-reload
+     ```
+
+3. **Start the Gunicorn Service:**
+   - Start the service manually for the first time:
+     ```bash
+     sudo systemctl start gunicorn
+     ```
+
+4. **Enable the Service to Start on Boot:**
+   - Enable the service so that it automatically starts on boot:
+     ```bash
+     sudo systemctl enable gunicorn
+     ```
+
+5. **Check the Status of the Service:**
+   - You can check whether Gunicorn is running by using:
+     ```bash
+     sudo systemctl status gunicorn
+     ```
+
+### Benefits of Using Systemd:
+
+- **Automatic Start on Boot:** The application will start automatically whenever the server is restarted.
+- **Automatic Restart:** If Gunicorn crashes for any reason, systemd can be configured to automatically restart it.
+- **Easy Management:** You can easily start, stop, restart, and check the status of your application with simple `systemctl` commands.
+
+### Managing the Gunicorn Service:
+
+- **Start the Service:**
+  ```bash
+  sudo systemctl start gunicorn
+  ```
+- **Stop the Service:**
+  ```bash
+  sudo systemctl stop gunicorn
+  ```
+- **Restart the Service:**
+  ```bash
+  sudo systemctl restart gunicorn
+  ```
+- **Check the Service Status:**
+  ```bash
+  sudo systemctl status gunicorn
+  ```
+
+By setting up Gunicorn as a systemd service, your Flask application will run continuously, ensuring 24/7 availability.
