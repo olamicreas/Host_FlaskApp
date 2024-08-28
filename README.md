@@ -1,6 +1,6 @@
 Here's a detailed guide without the optional steps:
 
-### 1. **Setup on RHEL (`amp012765.nomura.com`):**
+### 1. **Setup on RHEL (`example.com`):**
    - **1.1 Install Dependencies:**
      - SSH into your RHEL server:
        ```bash
@@ -87,12 +87,12 @@ Here's a detailed guide without the optional steps:
        sudo yum install policycoreutils-python-utils
        ```
 
-### 6. **Make the Application Accessible via `amp012765.nomura.com`:**
+### 6. **Make the Application Accessible via `example.com`:**
    - **6.1 Ensure the Server's Public IP is Mapped to `amp012765.nomura.com`:**
-     - Make sure the DNS is correctly set up to point `amp012765.nomura.com` to your server’s IP address.
+     - Make sure the DNS is correctly set up to point `example.com` to your server’s IP address.
 
    - **6.2 Access the Application via Browser:**
-     - Open your browser and navigate to `http://amp012765.nomura.com:8080/`.
+     - Open your browser and navigate to `http://example.com:8080/`.
      - You should see the output:
        ```
        Hello, World!
